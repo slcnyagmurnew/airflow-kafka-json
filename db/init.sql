@@ -1,0 +1,8 @@
+CREATE DATABASE IF NOT EXIST airflow;
+\c airflow;
+
+CREATE TABLE IF NOT EXIST products (
+	barcode VARCHAR(11) PRIMARY KEY,
+	amount INT DEFAULT 0
+);
+
