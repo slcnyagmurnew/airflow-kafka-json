@@ -1,26 +1,10 @@
 from json import dumps
-import json
 import os
 import logging
 from time import sleep
 
 from kafka import KafkaProducer
-
-
-def encode_to_json(file):
-    """
-    After reading initial json file, remaining files are divided and encoded to json
-    :param file: Randomly selected file that will be dumped to json
-    :return: Dumped json data
-    """
-    with open(file) as our_file:
-        json_file = json.load(our_file)
-        our_file.close()
-    our_list = []
-    for content in json_file['completedCounts'][0]['contents']:
-        our_list.append({content['barcode']: content['amount']})
-    dumped = dumps(our_list)
-    return dumped
+from json_functions import encode_to_json
 
 
 def generate_stream():

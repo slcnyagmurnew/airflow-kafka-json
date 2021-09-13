@@ -2,6 +2,7 @@ import json
 import argparse
 import os
 import psycopg2
+from json import dumps
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--init', help='Initial integer value for first json',
@@ -77,3 +78,46 @@ def divide_jsons(file=FILE_NAME):
         with open('./data/jsons/data-' + str(i) + '.json', 'w') as outfile:
             json.dump(data, outfile)
             outfile.close()
+
+
+def encode_to_json(file):
+    """
+    After reading initial json file, remaining files are divided and encoded to json
+    :param file: Randomly selected file that will be dumped to json
+    :return: Dumped json data
+    """
+    with open(file) as our_file:
+        json_file = json.load(our_file)
+        our_file.close()
+    our_list = []
+    for content in json_file['completedCounts'][0]['contents']:
+        our_list.append({content['barcode']: content['amount']})
+    dumped = dumps(our_list)
+    return dumped
+
+
+def update_db(count, barcodes, amounts):
+
+    conn = psycopg2.connect(conn_string)
+    cursor = conn.cursor()  # create cursor
+
+    for i in range(count):
+        try:
+            sql = """ INSERT INTO products VALUES (%s, %s)"""
+            record = (barcodes[i], int(amounts[i]))
+            cursor.execute(sql, record)
+
+            conn.commit()
+            print('Inserted successfully!')
+        except (Exception, psycopg2.Error):
+            sql = """ UPDATE products SET amount=amount + %d WHERE barcode=%s"""
+            record = (barcodes[i], int(amounts[i]))
+            cursor.execute(sql, record)
+
+            conn.commit()
+            print('Updated successfully')
+        finally:
+            if conn:
+                cursor.close()
+                conn.close()
+                print('Connection closed')
