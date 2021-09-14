@@ -1,8 +1,8 @@
 import airflow
 from airflow.models import DAG
-from airflow.operators.python import PythonOperator
+from airflow.operators.python_operator import PythonOperator
 
-from data.kafka_producer import generate_stream
+from src.kafka_producer import generate_stream
 
 args = {
     'owner': 'airflow',

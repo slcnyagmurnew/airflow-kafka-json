@@ -1,8 +1,8 @@
 import airflow
 from airflow.models import DAG
-from airflow.operators.python import PythonOperator
+from airflow.operators.python_operator import PythonOperator
 
-from data.json_functions import *
+from src.json_functions import add_to_db, divide_jsons, create_table
 
 args = {
     'owner': 'airflow',
@@ -18,15 +18,21 @@ dag = DAG(
 )
 
 task1 = PythonOperator(
+    task_id='create_table',
+    python_callable=create_table(),
+    dag=dag
+)
+
+task2 = PythonOperator(
     task_id='add_to_db',
     python_callable=add_to_db(),
     dag=dag
 )
 
-task2 = PythonOperator(
+task3 = PythonOperator(
     task_id='divide_jsons',
     python_callable=divide_jsons(),
     dag=dag
 )
 
-task1 >> task2
+task1 >> task2 >> task3

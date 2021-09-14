@@ -1,8 +1,8 @@
 import airflow
 from airflow.models import DAG
-from airflow.operators.python import PythonOperator
+from airflow.operators.python_operator import PythonOperator
 
-from data.data_functions import data_from_kafka
+from src.data_functions import data_from_kafka
 
 CLIENT = 'kafka:9092'
 TOPIC = 'Topic1'

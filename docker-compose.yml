@@ -8,8 +8,6 @@ services:
             - POSTGRES_USER=airflow
             - POSTGRES_PASSWORD=airflow
             - POSTGRES_DB=airflow
-        volumes:
-          - /db:/docker-entrypoint-initdb.d/:ro
 
     airflow:                                            # create airflow container
         build: './airflow_docker'                       # construct the container along the Dockerfile in this folder
