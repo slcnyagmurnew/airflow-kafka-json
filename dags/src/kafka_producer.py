@@ -35,7 +35,10 @@ def generate_stream():
 
     path = os.listdir('/usr/local/airflow/data/jsons')[0]  # json name
     full_path = '/usr/local/airflow/data/jsons/' + path  # json path
+    target_path = '/usr/local/airflow/data/garbage/gar-' + path
     products = encode_to_json(full_path)
+
+    os.rename(full_path, target_path)
 
     logging.info('Partitions: ', producer.partitions_for('Topic1'))
     producer.send('Topic1', value=products)
