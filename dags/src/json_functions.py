@@ -1,19 +1,17 @@
 import json
-import argparse
 import psycopg2
-from json import dumps
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--init', help='Initial integer value for first json',
-                    default=26)
-parser.add_argument('--file', help='JSON file name',
-                    default='/usr/local/airflow/data/counts.json')
-args = parser.parse_args()
-
-INITIAL_COUNT = int(args.init)
-FILE_NAME = args.file
-
-PGHOST = 'localhost'
+# parser = argparse.ArgumentParser()
+# parser.add_argument('--init', help='Initial integer value for first json',
+#                     default=26)
+# parser.add_argument('--file', help='JSON file name',
+#                     default='/usr/local/airflow/data/counts.json')
+# args = parser.parse_args()
+#
+# INITIAL_COUNT = int(args.init)
+# FILE_NAME = args.file
+#
+PGHOST = 'postgres'
 PGDATABASE = 'airflow'
 PGUSER = 'airflow'
 PGPASSWORD = 'airflow'
@@ -21,13 +19,14 @@ PGPASSWORD = 'airflow'
 conn_string = "host=" + PGHOST + " port=" + "5432" + " dbname=" + PGDATABASE + " user=" + PGUSER \
               + " password=" + PGPASSWORD
 
+file = '/usr/local/airflow/data/counts.json'
+count = 26
 
-def add_to_db(count=INITIAL_COUNT, file=FILE_NAME):
+
+def add_to_db():
     """
     Parse barcode and amount of src in counts.json
     Write parsed src into postgre database.
-    :param count: # of example src which will be written to db
-    :param file: new json file name to write parsed src
     :return:
     """
     with open(file) as our_file:
@@ -42,57 +41,40 @@ def add_to_db(count=INITIAL_COUNT, file=FILE_NAME):
         for j in data['completedCounts'][0]['contents']:
 
             try:
-                sql = """ INSERT INTO products VALUES (%s,%s);"""
-                record = (j['barcode'], int(j['amount']))
+                sql = """   INSERT INTO products
+                            VALUES (%s, %s)
+                            ON CONFLICT (barcode)
+                            DO
+                                UPDATE SET amount = amount + %s"""
+                record = (j['barcode'], j['amount'], j['amount'])
                 cursor.execute(sql, record)
 
                 conn.commit()
                 print('Inserted successfully!')
-            except (Exception, psycopg2.Error):
-                sql = """ UPDATE products SET amount=amount + %d WHERE barcode=%s;"""
-                record = (int(j['amount']), j['barcode'])
-                cursor.execute(sql, record)
-
-                conn.commit()
-                print('Updated successfully')
+            except (Exception, psycopg2.Error) as err:
+                print(err)
             finally:
-                if conn:
-                    cursor.close()
-                    conn.close()
-                    print('Connection closed')
+                print('Loop executed')
+    if conn:
+        cursor.close()
+        conn.close()
+        print('Connection closed')
 
 
-def divide_jsons(file=FILE_NAME):
+def divide_jsons():
     """
     Divide into json files for stream src
-    :param file: File (with path) to write new json files
     :return:
     """
     with open(file) as our_file:
         json_file = json.load(our_file)
         our_file.close()
 
-    for i in range(INITIAL_COUNT, len(json_file)):
+    for i in range(count, len(json_file)):
         data = json_file[i]
         with open('/usr/local/airflow/data/jsons/src-' + str(i) + '.json', 'w') as outfile:
             json.dump(data, outfile)
             outfile.close()
-
-
-def encode_to_json(file):
-    """
-    After reading initial json file, remaining files are divided and encoded to json
-    :param file: Randomly selected file that will be dumped to json
-    :return: Dumped json src
-    """
-    with open(file) as our_file:
-        json_file = json.load(our_file)
-        our_file.close()
-    our_list = []
-    for content in json_file['completedCounts'][0]['contents']:
-        our_list.append({content['barcode']: content['amount']})
-    dumped = dumps(our_list)
-    return dumped
 
 
 def create_table():
@@ -101,7 +83,7 @@ def create_table():
     cursor = conn.cursor()  # create cursor
 
     try:
-        sql = "CREATE TABLE IF NOT EXISTS products (barcode VARCHAR(11) PRIMARY KEY, amount INT DEFAULT 0);"
+        sql = "CREATE TABLE IF NOT EXISTS products (barcode VARCHAR(11) PRIMARY KEY, amount INT);"
         cursor.execute(sql)
 
         conn.commit()
@@ -114,29 +96,3 @@ def create_table():
             conn.close()
             print('Connection closed')
 
-
-def update_db(count, barcodes, amounts):
-
-    conn = psycopg2.connect(conn_string)
-    cursor = conn.cursor()  # create cursor
-
-    for i in range(count):
-        try:
-            sql = """ INSERT INTO products VALUES (%s, %s);"""
-            record = (barcodes[i], int(amounts[i]))
-            cursor.execute(sql, record)
-
-            conn.commit()
-            print('Inserted successfully!')
-        except (Exception, psycopg2.Error):
-            sql = """ UPDATE products SET amount=amount + %d WHERE barcode=%s;"""
-            record = (barcodes[i], int(amounts[i]))
-            cursor.execute(sql, record)
-
-            conn.commit()
-            print('Updated successfully')
-        finally:
-            if conn:
-                cursor.close()
-                conn.close()
-                print('Connection closed')

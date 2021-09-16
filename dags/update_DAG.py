@@ -10,7 +10,7 @@ TOPIC = 'Topic1'
 args = {
     'owner': 'airflow',
     'start_date': airflow.utils.dates.days_ago(1),
-    'provide_context': True,
+    'provide_context': False,
 }
 
 dag = DAG(
@@ -22,7 +22,7 @@ dag = DAG(
 
 task1 = PythonOperator(
     task_id='data_from_kafka',
-    python_callable=data_from_kafka(),
+    python_callable=data_from_kafka,
     op_kwargs={'client': CLIENT,
                'topic': TOPIC},
     dag=dag

@@ -2,11 +2,11 @@ import json
 import logging
 import time
 from json import loads
+import psycopg2
 
 from kafka import KafkaConsumer
-from json_functions import update_db
 
-PGHOST = 'localhost'
+PGHOST = 'postgres'
 PGDATABASE = 'airflow'
 PGUSER = 'airflow'
 PGPASSWORD = 'airflow'
@@ -21,8 +21,8 @@ def decode_json(data):
 
     sample = json.loads(data)
     for i in range(len(sample)):
-        barcode = sample[i]['barcode']
-        amount = sample[i]['amount']
+        barcode = list(sample[i].keys())[0]
+        amount = list(sample[i].values())[0]
         barcodes.append(barcode)
         amounts.append(amount)
     logging.info('New barcodes were added with amounts')
@@ -30,9 +30,34 @@ def decode_json(data):
     return barcodes, amounts
 
 
+def update_db(count, barcodes, amounts):
+
+    conn = psycopg2.connect(conn_string)
+    cursor = conn.cursor()  # create cursor
+
+    for i in range(count):
+        try:
+            sql = """   INSERT INTO products VALUES (%s, %s)
+                        ON CONFLICT (barcode)
+                        DO 
+                            UPDATE SET amount = amount + %s;    """
+            record = (barcodes[i], int(amounts[i]), int(amounts[i]))
+            cursor.execute(sql, record)
+
+            conn.commit()
+            print('Inserted successfully!')
+        except (Exception, psycopg2.Error) as err:
+            print(err)
+        finally:
+            print('Loop executed')
+    if conn:
+        cursor.close()
+        conn.close()
+        print('Connection closed')
+
+
 def data_from_kafka(**kwargs):
     """
-
     :param kwargs:
     :return:
     """
@@ -52,7 +77,7 @@ def data_from_kafka(**kwargs):
 
     for item in consumer:  # item is not file name, json object
 
-        logging.info("Offset: ", item.offset)
+        # logging.info("Offset: ", item.offset)
         item = item.value
         barcodes, amounts = decode_json(item)  # barcodes and amounts from one json file
         count = len(barcodes)
@@ -69,3 +94,4 @@ def data_from_kafka(**kwargs):
     with open('/usr/local/airflow/data/logs/log-' + str(time.strftime("%Y%m%d_%H%M")) + '.json', 'w') as outfile:
         json.dump(products, outfile)
         outfile.close()
+
