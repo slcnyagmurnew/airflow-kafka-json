@@ -41,11 +41,11 @@ def add_to_db():
         for j in data['completedCounts'][0]['contents']:
 
             try:
-                sql = """   INSERT INTO products
-                            VALUES (%s, %s)
-                            ON CONFLICT (barcode)
-                            DO
-                                UPDATE SET amount = amount + %s"""
+                sql = """INSERT INTO products (barcode, amount)
+VALUES (%s, %s)
+ON CONFLICT (barcode)
+DO
+    UPDATE SET amount = products.amount + %s"""
                 record = (j['barcode'], j['amount'], j['amount'])
                 cursor.execute(sql, record)
 
@@ -95,4 +95,6 @@ def create_table():
             cursor.close()
             conn.close()
             print('Connection closed')
+
+
 

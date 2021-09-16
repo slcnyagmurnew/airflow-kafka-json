@@ -37,10 +37,11 @@ def update_db(count, barcodes, amounts):
 
     for i in range(count):
         try:
-            sql = """   INSERT INTO products VALUES (%s, %s)
-                        ON CONFLICT (barcode)
-                        DO 
-                            UPDATE SET amount = amount + %s;    """
+            sql = """INSERT INTO products (barcode, amount)
+VALUES (%s, %s)
+ON CONFLICT (barcode)
+DO
+    UPDATE SET amount = products.amount + %s"""
             record = (barcodes[i], int(amounts[i]), int(amounts[i]))
             cursor.execute(sql, record)
 
